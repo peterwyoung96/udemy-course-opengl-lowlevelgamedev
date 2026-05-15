@@ -38,6 +38,8 @@ struct Shader
 
     void clear();
 
+    GLint getUniformLocation(const char *name);
+
 }; // end-struct Shader
 
 // // EOF //////////////////////////////////////////////////////////////////////

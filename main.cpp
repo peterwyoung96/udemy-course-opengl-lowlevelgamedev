@@ -9,13 +9,30 @@
 
 // // GLOBAL VARIABLES /////////////////////////////////////////////////////////
 
-float triangleData[] = 
+// float triangleData[] = 
+// {
+//     // Positions        Colors
+//     // x y z            r g b
+//     0, 1, 0,            1, 0, 0,    // Vertex 1
+//     -1, -1, 0,          0, 1, 0,    // Vertex 2
+//     1, -1, 0,           0, 0, 1     // Vertex 3
+
+// };
+
+float quadData[] =
 {
-    // Positions        Colors
-    // x y z            r g b
-    0, 1, 0,            1, 0, 0,    // Vertex 1
-    -1, -1, 0,          0, 1, 0,    // Vertex 2
-    1, -1, 0,           0, 0, 1     // Vertex 3
+    // Position         Colors
+    // x, y, z          r, g, b
+    0.5, 0.5, 0,        1, 0, 0,    // Vertex 1
+    -0.5, 0.5, 0,       0, 1, 0,    // Vertex 2
+    -0.5, -0.5, 0,      0, 0, 1,    // Vertex 3
+    0.5, -0.5, 0,       0, 0, 1,    // Vertex 4
+};
+
+unsigned short indices[] = 
+{
+    0, 1, 2,    // first triangle
+    0, 2, 3     // second triangle
 };
 
 // // MAIN LOOP ////////////////////////////////////////////////////////////////
@@ -64,6 +81,11 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+    // CREATE A VAO THAT SIMPLIFIES OUR BINDINGS
+    GLuint vao = 0;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
     // CREATE THE BUFFER
     GLuint buffer = 0;
     glGenBuffers(1, &buffer);   // 1 = only making 1 buffer
@@ -72,8 +94,8 @@ int main(int argc, char* argv[])
                                             // vertex buffer.
 
     glBufferData(GL_ARRAY_BUFFER,   // Vertex buffer
-        sizeof(triangleData),       // Size
-        triangleData,               // The data itself
+        sizeof(quadData),       // Size
+        quadData,               // The data itself
         GL_STATIC_DRAW              // A hint that this data
                                     // won't get updated
     );
@@ -105,12 +127,24 @@ int main(int argc, char* argv[])
         (void*)(sizeof(float)*3)    // Legacy code reason for formatting
     );
 
+    GLuint indexBuffer = 0;
+    glGenBuffers(1, &indexBuffer);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), 
+        indices, GL_STATIC_DRAW);
+
+    // IT'S GOOD PRACTICE TO UNBIND YOUR VAO AFTER YOU'RE DONE.
+    glBindVertexArray(0);
+
     Shader shader;
     shader.loadShaderProgramFromFile(
         "resources/myshader.vert",
         "resources/myshader.frag"
     );
     shader.bind();
+
+    GLint u_time = shader.getUniformLocation("u_time");
 
     // DO THE MAIN LOOP
     bool running = true;
@@ -144,6 +178,9 @@ int main(int argc, char* argv[])
         glClear(GL_COLOR_BUFFER_BIT);
         glClearColor(0.0f, 0.5f, 0.5f, 1.0f);
 
+        shader.bind();
+        glUniform1f(u_time, (float)(clock())/100.0f);
+
         /// NOTE: This is just kept here for my own edification.
         if (doLegacyTriangleRender)
         {
@@ -165,7 +202,10 @@ int main(int argc, char* argv[])
             // If a shader is not loaded, this will either
             // not show, or you will see a white triangle.
             // Some implement a default shader.
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            //glDrawArrays(GL_TRIANGLES, 0, 3);
+            glBindVertexArray(vao);
+            glDrawElements(GL_TRIANGLES, 6,
+                GL_UNSIGNED_SHORT, nullptr);
         }
 
         SDL_GL_SwapWindow(window);
@@ -173,6 +213,8 @@ int main(int argc, char* argv[])
     } // end-main while loop
 
     glDeleteBuffers(1, &buffer);
+    glDeleteBuffers(1, &indexBuffer);
+    glDeleteVertexArrays(1, &vao);
 
     return 0;
 }
